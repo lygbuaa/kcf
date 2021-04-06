@@ -1,3 +1,13 @@
+$ mkdir build; 
+cd build; 
+cmake .. ; 
+make
+
+set data path in main_vot.cpp and images.txt
+
+then run ./kcf_vot
+
+
 ## Tracking with Kernelized Correlation Filters
 
 Code author : Tomas Vojir

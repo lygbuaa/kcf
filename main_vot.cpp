@@ -5,8 +5,12 @@
 
 int main()
 {
+    static const std::string DATA_PATH = "/home/hugoliu/hugo/github/kcf/data/";
+    static const std::string REGION_FILE_PATH = DATA_PATH + "region.txt";
+    static const std::string IMAGES_FILE_PATH = DATA_PATH + "images.txt";
+
     //load region, images and prepare for output
-    VOT vot_io("region.txt", "images.txt", "output.txt");
+    VOT vot_io(REGION_FILE_PATH, IMAGES_FILE_PATH, "output.txt");
 
     KCF_Tracker tracker;
     cv::Mat image;
@@ -21,20 +25,24 @@ int main()
     BBox_c bb;
     double avg_time = 0.;
     int frames = 0;
+    cv::namedWindow("kcf", cv::WINDOW_NORMAL);
+
     while (vot_io.getNextImage(image) == 1){
         double time_profile_counter = cv::getCPUTickCount();
         tracker.track(image);
         time_profile_counter = cv::getCPUTickCount() - time_profile_counter;
         //std::cout << "  -> speed : " <<  time_profile_counter/((double)cvGetTickFrequency()*1000) << "ms. per frame" << std::endl;
-        avg_time += time_profile_counter/((double)cvGetTickFrequency()*1000);
+        avg_time += time_profile_counter/((double)cv::getTickFrequency()/1000.0f);
         frames++;
 
         bb = tracker.getBBox();
         vot_io.outputBoundingBox(cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h));
 
-       // cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), CV_RGB(0,255,0), 2);
-       // cv::imshow("output", image);
-       // cv::waitKey();
+        // std::cout << "frame: " << frames << ", bbox: " << bb.cx << ", " << bb.cy << ", " << bb.w << ", " << bb.h << std::endl;
+
+        cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), CV_RGB(0,255,0), 2);
+        cv::imshow("kcf", image);
+        cv::waitKey(30);
 
 //        std::stringstream s;
 //        std::string ss;

@@ -40,6 +40,8 @@ void KCF_Tracker::init(cv::Mat &img, const cv::Rect & bbox)
     p_pose.cx = x1 + p_pose.w/2.;
     p_pose.cy = y1 + p_pose.h/2.;
 
+    std::cout << "init: pose xywh " << x1 << ", " << y1 << ", " << p_pose.w << ", " << p_pose.h << std::endl;
+
     cv::Mat input_gray, input_rgb = img.clone();
     if (img.channels() == 3){
         cv::cvtColor(img, input_gray, cv::COLOR_BGR2GRAY);
@@ -83,6 +85,9 @@ void KCF_Tracker::init(cv::Mat &img, const cv::Rect & bbox)
     //window weights, i.e. labels
     p_yf = fft2(gaussian_shaped_labels(p_output_sigma, p_windows_size[0]/p_cell_size, p_windows_size[1]/p_cell_size));
     p_cos_window = cosine_window_function(p_yf.cols, p_yf.rows);
+
+    std::cout << "init: p_yf size " << p_yf.cols << " * " << p_yf.rows << std::endl;
+    std::cout << "init: p_cos_window size " << p_cos_window.cols << " * " << p_cos_window.rows << std::endl;
 
     //obtain a sub-window for training initial model
     std::vector<cv::Mat> path_feat = get_features(input_rgb, input_gray, p_pose.cx, p_pose.cy, p_windows_size[0], p_windows_size[1]);
@@ -132,8 +137,14 @@ BBox_c KCF_Tracker::getBBox()
     return tmp;
 }
 
+double KCF_Tracker::getMaxResponse()
+{
+    return p_max_response;
+}
+
 void KCF_Tracker::track(cv::Mat &img)
 {
+    p_max_response = -1;
     cv::Mat input_gray, input_rgb = img.clone();
     if (img.channels() == 3){
         cv::cvtColor(img, input_gray, cv::COLOR_BGR2GRAY);
@@ -187,6 +198,7 @@ void KCF_Tracker::track(cv::Mat &img)
                 max_response_map = response;
                 max_response_pt = max_loc;
                 scale_index = i;
+                p_max_response = max_response;
             }
             scale_responses.push_back(max_val*weight);
         }
@@ -210,12 +222,18 @@ void KCF_Tracker::track(cv::Mat &img)
             cv::Point2i min_loc, max_loc;
             cv::minMaxLoc(response, &min_val, &max_val, &min_loc, &max_loc);
 
+            // std::cout << "scale: " << p_scales[i] \
+            // << ", hog-feature size: " << patch_feat[0].cols << " * " << patch_feat[0].rows << " * " << patch_feat.size() \
+            // << ", zf size: " << zf.cols << " * " << zf.rows << " * " << zf.n_channels \
+            // << ", response size: " << response.cols << " * " << response.rows << std::endl;
+
             double weight = p_scales[i] < 1. ? p_scales[i] : 1./p_scales[i];
             if (max_val*weight > max_response) {
                 max_response = max_val*weight;
                 max_response_map = response;
                 max_response_pt = max_loc;
                 scale_index = i;
+                p_max_response = max_response;
             }
             scale_responses.push_back(max_val*weight);
         }
@@ -250,6 +268,11 @@ void KCF_Tracker::track(cv::Mat &img)
         p_current_scale = p_min_max_scale[0];
     if (p_current_scale > p_min_max_scale[1])
         p_current_scale = p_min_max_scale[1];
+
+    /* update template only when response > 0.2f */
+    if(p_max_response < 0.4f){
+        return;
+    }
 
     //obtain a subwindow for training at newly estimated target position
     patch_feat = get_features(input_rgb, input_gray, p_pose.cx, p_pose.cy, p_windows_size[0], p_windows_size[1], p_current_scale);

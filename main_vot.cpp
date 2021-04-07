@@ -37,10 +37,14 @@ int main()
 
         bb = tracker.getBBox();
         vot_io.outputBoundingBox(cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h));
+        double score = tracker.getMaxResponse();
+        char buf[64] = {0};
+        sprintf(buf, "score: %.2f", score);
 
         // std::cout << "frame: " << frames << ", bbox: " << bb.cx << ", " << bb.cy << ", " << bb.w << ", " << bb.h << std::endl;
 
         cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), CV_RGB(0,255,0), 2);
+        cv::putText(image, std::string(buf), cv::Point(bb.cx-bb.w/2, bb.cy-bb.h/2-10), cv::FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(255, 64, 0), 2);
         cv::imshow("kcf", image);
         cv::waitKey(30);
 

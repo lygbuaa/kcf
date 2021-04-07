@@ -33,7 +33,7 @@ public:
     bool m_use_color {true};
     bool m_use_subpixel_localization {true};
     bool m_use_subgrid_scale {true};
-    bool m_use_multithreading {true};
+    bool m_use_multithreading {false};
     bool m_use_cnfeat {true};
     bool m_use_linearkernel {false};
 
@@ -58,6 +58,7 @@ public:
     // frame-to-frame object tracking
     void track(cv::Mat & img);
     BBox_c getBBox();
+    double getMaxResponse();
 
 private:
     BBox_c p_pose;
@@ -84,6 +85,7 @@ private:
     ComplexMat p_model_alphaf_num;
     ComplexMat p_model_alphaf_den;
     ComplexMat p_model_xf;
+    double p_max_response;
 
     //helping functions
     cv::Mat get_subwindow(const cv::Mat & input, int cx, int cy, int size_x, int size_y);

@@ -37,16 +37,24 @@ int main()
 
         bb = tracker.getBBox();
         vot_io.outputBoundingBox(cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h));
-        double score = tracker.getMaxResponse();
+        double response = tracker.getMaxResponse();
+        double apce = tracker.getApce();
         char buf[64] = {0};
-        sprintf(buf, "score: %.2f", score);
+        sprintf(buf, "%.2f / %.2f", response, apce);
+
+        cv::Scalar color;
+        if(tracker.conf_high_){
+            color = CV_RGB(0, 255, 0);
+        }else{
+            color = CV_RGB(255, 0, 0);
+        }
 
         // std::cout << "frame: " << frames << ", bbox: " << bb.cx << ", " << bb.cy << ", " << bb.w << ", " << bb.h << std::endl;
 
-        cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), CV_RGB(0,255,0), 2);
+        cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), color, 2);
         cv::putText(image, std::string(buf), cv::Point(bb.cx-bb.w/2, bb.cy-bb.h/2-10), cv::FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(255, 64, 0), 2);
         cv::imshow("kcf", image);
-        cv::waitKey(30);
+        cv::waitKey(200);
 
 //        std::stringstream s;
 //        std::string ss;

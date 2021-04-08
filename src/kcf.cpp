@@ -105,6 +105,8 @@ void KCF_Tracker::init(cv::Mat &img, const cv::Rect & bbox)
     }
     p_model_alphaf = p_model_alphaf_num / p_model_alphaf_den;
 //        p_model_alphaf = p_yf / (kf + p_lambda);   //equation for fast training
+
+    p_apce_ = std::unique_ptr<ApceCriterion> (new ApceCriterion(30, 0.3f));
 }
 
 void KCF_Tracker::setTrackerPose(BBox_c &bbox, cv::Mat & img)
@@ -142,9 +144,19 @@ double KCF_Tracker::getMaxResponse()
     return p_max_response;
 }
 
+double KCF_Tracker::getApce()
+{
+    if(p_apce_){
+        return p_apce_ -> getApce();
+    }else{
+        return -1.0f;
+    }
+}
+
 void KCF_Tracker::track(cv::Mat &img)
 {
     p_max_response = -1;
+    conf_high_ = false;
     cv::Mat input_gray, input_rgb = img.clone();
     if (img.channels() == 3){
         cv::cvtColor(img, input_gray, cv::COLOR_BGR2GRAY);
@@ -239,6 +251,8 @@ void KCF_Tracker::track(cv::Mat &img)
         }
     }
 
+    p_apce_ -> update(max_response_map);
+
     //sub pixel quadratic interpolation from neighbours
     if (max_response_pt.y > max_response_map.rows / 2) //wrap around to negative half-space of vertical axis
         max_response_pt.y = max_response_pt.y - max_response_map.rows;
@@ -269,36 +283,36 @@ void KCF_Tracker::track(cv::Mat &img)
     if (p_current_scale > p_min_max_scale[1])
         p_current_scale = p_min_max_scale[1];
 
-    /* update template only when response > 0.2f */
-    if(p_max_response < 0.4f){
-        return;
+    /* shall we update template ? */
+    if((p_max_response > 0.3f) && (p_apce_ -> judge())){
+        conf_high_ = true;
+
+        //obtain a subwindow for training at newly estimated target position
+        patch_feat = get_features(input_rgb, input_gray, p_pose.cx, p_pose.cy, p_windows_size[0], p_windows_size[1], p_current_scale);
+        ComplexMat xf = fft2(patch_feat, p_cos_window);
+
+        //subsequent frames, interpolate model
+        p_model_xf = p_model_xf * (1. - p_interp_factor) + xf * p_interp_factor;
+
+        ComplexMat alphaf_num, alphaf_den;
+
+        if (m_use_linearkernel) {
+            ComplexMat xfconj = xf.conj();
+            alphaf_num = xfconj.mul(p_yf);
+            alphaf_den = (xf * xfconj);
+        } else {
+            //Kernel Ridge Regression, calculate alphas (in Fourier domain)
+            ComplexMat kf = gaussian_correlation(xf, xf, p_kernel_sigma, true);
+    //        ComplexMat alphaf = p_yf / (kf + p_lambda); //equation for fast training
+    //        p_model_alphaf = p_model_alphaf * (1. - p_interp_factor) + alphaf * p_interp_factor;
+            alphaf_num = p_yf * kf;
+            alphaf_den = kf * (kf + p_lambda);
+        }
+
+        p_model_alphaf_num = p_model_alphaf_num * (1. - p_interp_factor) + alphaf_num * p_interp_factor;
+        p_model_alphaf_den = p_model_alphaf_den * (1. - p_interp_factor) + alphaf_den * p_interp_factor;
+        p_model_alphaf = p_model_alphaf_num / p_model_alphaf_den;
     }
-
-    //obtain a subwindow for training at newly estimated target position
-    patch_feat = get_features(input_rgb, input_gray, p_pose.cx, p_pose.cy, p_windows_size[0], p_windows_size[1], p_current_scale);
-    ComplexMat xf = fft2(patch_feat, p_cos_window);
-
-    //subsequent frames, interpolate model
-    p_model_xf = p_model_xf * (1. - p_interp_factor) + xf * p_interp_factor;
-
-    ComplexMat alphaf_num, alphaf_den;
-
-    if (m_use_linearkernel) {
-        ComplexMat xfconj = xf.conj();
-        alphaf_num = xfconj.mul(p_yf);
-        alphaf_den = (xf * xfconj);
-    } else {
-        //Kernel Ridge Regression, calculate alphas (in Fourier domain)
-        ComplexMat kf = gaussian_correlation(xf, xf, p_kernel_sigma, true);
-//        ComplexMat alphaf = p_yf / (kf + p_lambda); //equation for fast training
-//        p_model_alphaf = p_model_alphaf * (1. - p_interp_factor) + alphaf * p_interp_factor;
-        alphaf_num = p_yf * kf;
-        alphaf_den = kf * (kf + p_lambda);
-    }
-
-    p_model_alphaf_num = p_model_alphaf_num * (1. - p_interp_factor) + alphaf_num * p_interp_factor;
-    p_model_alphaf_den = p_model_alphaf_den * (1. - p_interp_factor) + alphaf_den * p_interp_factor;
-    p_model_alphaf = p_model_alphaf_num / p_model_alphaf_den;
 }
 
 // ****************************************************************************

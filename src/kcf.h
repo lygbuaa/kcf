@@ -6,6 +6,7 @@
 #include "fhog.hpp"
 #include "complexmat.hpp"
 #include "cnfeat.hpp"
+#include "apce_criterion.h"
 
 struct BBox_c
 {
@@ -59,6 +60,9 @@ public:
     void track(cv::Mat & img);
     BBox_c getBBox();
     double getMaxResponse();
+    double getApce();
+
+    bool conf_high_;
 
 private:
     BBox_c p_pose;
@@ -85,7 +89,10 @@ private:
     ComplexMat p_model_alphaf_num;
     ComplexMat p_model_alphaf_den;
     ComplexMat p_model_xf;
+
     double p_max_response;
+    double p_min_response;
+    std::unique_ptr<ApceCriterion> p_apce_;
 
     //helping functions
     cv::Mat get_subwindow(const cv::Mat & input, int cx, int cy, int size_x, int size_y);

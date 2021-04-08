@@ -16,7 +16,7 @@ include_directories ( ${OpenCV_INCLUDE_DIRS} )
 MESSAGE(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
 
 INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/)
-include_directories(${CMAKE_SOURCE_DIR}/src/ ${CMAKE_SOURCE_DIR}/src/piotr_fhog ${CMAKE_SOURCE_DIR}/src/cn)
+include_directories(${CMAKE_SOURCE_DIR}/src/ ${CMAKE_SOURCE_DIR}/src/piotr_fhog ${CMAKE_SOURCE_DIR}/src/cn ${CMAKE_SOURCE_DIR}/src/apce)
 
 add_subdirectory(src)
 

@@ -6,8 +6,8 @@
 int main()
 {
     static const std::string DATA_PATH = "/home/hugoliu/hugo/github/kcf/data/";
-    static const std::string REGION_FILE_PATH = DATA_PATH + "region.txt";
-    static const std::string IMAGES_FILE_PATH = DATA_PATH + "images.txt";
+    static const std::string REGION_FILE_PATH = DATA_PATH + "region_mono.txt";
+    static const std::string IMAGES_FILE_PATH = DATA_PATH + "images_mono.txt";
 
     //load region, images and prepare for output
     VOT vot_io(REGION_FILE_PATH, IMAGES_FILE_PATH, "output.txt");
@@ -16,10 +16,13 @@ int main()
     cv::Mat image;
 
     //img = firts frame, initPos = initial position in the first frame
-    cv::Rect init_rect = vot_io.getInitRectangle();
-    vot_io.outputBoundingBox(init_rect);
+    // cv::Rect init_rect = vot_io.getInitRectangle();
+    // std::cout << "init rect: " << init_rect.x << ", " << init_rect.y << ", " << init_rect.width << ", " << init_rect.height;
+    // vot_io.outputBoundingBox(init_rect);
     vot_io.getNextImage(image);
 
+    // cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+    cv::Rect init_rect(20, 10, 160, 480);
     tracker.init(image, init_rect);
 
     BBox_c bb;
@@ -29,6 +32,7 @@ int main()
 
     while (vot_io.getNextImage(image) == 1){
         double time_profile_counter = cv::getCPUTickCount();
+        // cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
         tracker.track(image);
         time_profile_counter = cv::getCPUTickCount() - time_profile_counter;
         //std::cout << "  -> speed : " <<  time_profile_counter/((double)cvGetTickFrequency()*1000) << "ms. per frame" << std::endl;
@@ -54,7 +58,7 @@ int main()
         cv::rectangle(image, cv::Rect(bb.cx - bb.w/2., bb.cy - bb.h/2., bb.w, bb.h), color, 2);
         cv::putText(image, std::string(buf), cv::Point(bb.cx-bb.w/2, bb.cy-bb.h/2-10), cv::FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(255, 64, 0), 2);
         cv::imshow("kcf", image);
-        cv::waitKey(200);
+        cv::waitKey(50);
 
 //        std::stringstream s;
 //        std::string ss;

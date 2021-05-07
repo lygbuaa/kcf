@@ -284,7 +284,7 @@ void KCF_Tracker::track(cv::Mat &img)
         p_current_scale = p_min_max_scale[1];
 
     /* shall we update template ? */
-    if((p_max_response > 0.3f) && (p_apce_ -> judge())){
+    if((p_max_response > 0.01f)){
         conf_high_ = true;
 
         //obtain a subwindow for training at newly estimated target position

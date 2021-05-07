@@ -31,11 +31,11 @@ class KCF_Tracker
 {
 public:
     bool m_use_scale {true};
-    bool m_use_color {true};
-    bool m_use_subpixel_localization {true};
-    bool m_use_subgrid_scale {true};
+    bool m_use_color {false};
+    bool m_use_subpixel_localization {false};
+    bool m_use_subgrid_scale {false};
     bool m_use_multithreading {false};
-    bool m_use_cnfeat {true};
+    bool m_use_cnfeat {false};
     bool m_use_linearkernel {false};
 
     /*
